@@ -49,3 +49,4 @@ po/*~
 rsconnect/
 
 # Rproj files, may contain sensible data
+*.Rproj
