@@ -76,7 +76,7 @@ data(knee, package="catdata")
 knee \%>\% mutate(Th = factor(Th),
                 Sex = factor(Sex, levels = c(0, 1), labels = c("male", "female")),
                 Age = cut(Age, breaks = c(min(Age), 30, 40, max(Age)), include.lowest = TRUE),
-                R4_improved = factor(if_else(R4 < R1, 1, 0))) ->
+                R4_improved = factor(if_else(R4 < R1, 1, 0), levels = c(0, 1), labels = c("no", "yes"))) ->
   knee
 formula_overall = "R4_improved ~ Th + R1"
 
@@ -94,7 +94,7 @@ knee \%>\%
                           ),
                           group = "Th",
                           outcome = "R4_improved",
-                          outcome_positive = 1) ->
+                          outcome_positive = "yes") ->
   res
 
 # Add a header

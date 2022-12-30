@@ -49,7 +49,7 @@
 #' knee %>% mutate(Th = factor(Th),
 #'                 Sex = factor(Sex, levels = c(0, 1), labels = c("male", "female")),
 #'                 Age = cut(Age, breaks = c(min(Age), 30, 40, max(Age)), include.lowest = TRUE),
-#'                 R4_improved = factor(if_else(R4 < R1, 1, 0))) ->
+#'                 R4_improved = factor(if_else(R4 < R1, 1, 0), levels = c(0, 1), labels = c("no", "yes"))) ->
 #'   knee
 #' formula_overall = "R4_improved ~ Th + R1"
 #'
@@ -67,7 +67,7 @@
 #'                           ),
 #'                           group = "Th",
 #'                           outcome = "R4_improved",
-#'                           outcome_positive = 1) ->
+#'                           outcome_positive = "yes") ->
 #'   res
 #'
 #' # Add a header
@@ -119,6 +119,8 @@ subgroup_table_binomial <- function(data,
                            outcome,
                            outcome_positive,
                            OR_interact = FALSE){
+  # which level is the positive_outcome?
+  outcome_positive_pos = which(levels(data[[outcome]]) == outcome_positive)
   # Variables names of subgroup variables
   subgroup_vars <- names(formulas)
   # Labels for subgroup variables
@@ -152,7 +154,7 @@ subgroup_table_binomial <- function(data,
     # Frequency table of positive outcome
     group_t = table(data[[group]])
     outcome_per_group_t =
-      table(data[[group]], data[[outcome]])[, outcome_positive]
+      table(data[[group]], data[[outcome]])[, outcome_positive_pos]
     outcome_per_group_freq_t =
       matrix(paste0(outcome_per_group_t, "/",
                     group_t, " (",
@@ -211,7 +213,7 @@ subgroup_table_binomial <- function(data,
       stop(paste("The factor variable", subgroup, "contains unused levels. Consider using droplevels()."))
     }
     outcome_per_subgroup_t =
-      table(data[[subgroup]], data[[group]], data[[outcome]])[, , outcome_positive]
+      table(data[[subgroup]], data[[group]], data[[outcome]])[, , outcome_positive_pos]
     outcome_per_subgroup_freq_t =
       matrix(paste0(outcome_per_subgroup_t, "/",
                     subgroup_t, " (",
