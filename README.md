@@ -22,7 +22,8 @@ devtools::install_github("LukasDSauer/forestplotutil")
 
 ## Example
 
-This is a basic example which shows you how to solve a common problem:
+This is a basic example on how to generate a subgroup analysis plot
+using forestplotutil and forestplot.
 
 ``` r
 library(forestplotutil)
