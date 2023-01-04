@@ -64,18 +64,11 @@ knee %>%
                           ),
                           group = "Th",
                           outcome = "R4_improved",
-                          outcome_positive = 1) ->
+                          outcome_positive = 1)  %>% 
+  # Add a header - each line of the header as a separate vector row
+  add_header(group1_lbl = c("Improvement", "after ten days", "of placebo"),
+             group2_lbl = c("Improvement", "after ten days", "of treatment")) ->
   res
-
-# Add a header
-header <- tibble(subgroup = c("", "", "Subgroup"),
-                 group1 = c("Improvement", "after ten days", "of placebo"),
-                 group2 = c("Improvement", "after ten days", "of treatment"),
-                 OR = c("", "Odds ratio", "[95% CI]"),
-                 summary = TRUE,
-                 p = c("", "", "p"))
-res <- bind_rows(header,
-                 res)
 
 # Visualize using forestplot
 library(forestplot)
