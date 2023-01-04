@@ -33,7 +33,19 @@
 #'   add_header(., group1_lbl = c("Improvement in", "placebo group"),
 #'              group2_lbl = c("Improvement in", "treatment group")) ->
 #'   res
-add_header <- function(data, group1_lbl, group2_lbl){
+add_header <- function(data, group1_lbl = c("", ""), group2_lbl = c("", "")){
+  group_in_data = "group1" %in% names(data)
+  if(group_in_data){
+    if(is.null(group1_lbl)){
+      group1_lbl = c("", "group1")
+    }
+    if(is.null(group2_lbl)){
+      group2_lbl = c("", "group2")
+    }
+  } else{
+    group1_lbl = c("", "")
+    group2_lbl = group1_lbl
+  }
   max_length = max(length(group1_lbl), length(group2_lbl))
   header <- tibble(subgroup = c(rep("", max_length-1), "Subgroup"),
                    group1 = c(rep("", max_length-length(group1_lbl)), group1_lbl),
@@ -41,7 +53,9 @@ add_header <- function(data, group1_lbl, group2_lbl){
                    OR = c(rep("", max_length-2), "Odds ratio", "[95% CI]"),
                    summary = TRUE,
                    p = c(rep("", max_length-1), "p"))
-
+  if(!group_in_data){
+    header <- header[, -which(names(header) %in% c("group1", "group2"))]
+  }
   res <- bind_rows(header,
                    data)
   return(res)

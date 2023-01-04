@@ -293,17 +293,32 @@ subgroup_table_binomial <- function(data,
       for(level in subgroup_levels){
         k = k + 1
         # Calculate model on subgroup
-        mod_subgroup = glm(formula = formulas_subgroups[subgroup][[1]],
-                           family = binomial,
-                           data=data[data[[subgroup]] == level & !is.na(data[[subgroup]]), ])
-        # Confidence interval(s)
-        ci = exp(confint.default(mod_subgroup))
-        ci_lower[k] = ci[group2_name,1]
-        ci_upper[k] = ci[group2_name,2]
-        # Odds ratio of treatment group in the model calculated on the subgroup
-        OR_num[k] = unname(exp(mod_subgroup$coefficients[group2_name]))
-        OR_string[k] = paste0(rd(exp(mod_subgroup$coefficients[group2_name])),
-                              " [",rd(ci[group2_name,1]), ",", rd(ci[group2_name,2]), "]")
+        mod_subgroup <- tryCatch(glm(formula = formulas_subgroups[subgroup][[1]],
+                                     family = binomial,
+                                     data=data[data[[subgroup]] == level & !is.na(data[[subgroup]]), ]),
+                                 error = function(e){
+                                   warning(paste0("\nError converted to warning.",
+                                                  " Perhaps a subgroup is too",
+                                                  " small. Original error",
+                                                  " message:\n", e))
+                                   return(NULL)
+                                 })
+        if(!is.null(mod_subgroup)){
+          # Confidence interval(s)
+          ci = exp(confint.default(mod_subgroup))
+          ci_lower[k] = ci[group2_name,1]
+          ci_upper[k] = ci[group2_name,2]
+          # Odds ratio of treatment group in the model calculated on the subgroup
+          OR_num[k] = unname(exp(mod_subgroup$coefficients[group2_name]))
+          OR_string[k] = paste0(rd(exp(mod_subgroup$coefficients[group2_name])),
+                                " [",rd(ci[group2_name,1]), ",", rd(ci[group2_name,2]), "]")
+        } else {
+          ci_lower[k] = NA_real_
+          ci_upper[k] = NA_real_
+          OR_num[k] = NA_real_
+          OR_string[k] = NA_character_
+        }
+
       }
     }
 
