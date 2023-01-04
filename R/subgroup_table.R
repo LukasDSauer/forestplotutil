@@ -71,14 +71,9 @@
 #'   res
 #'
 #' # Add a header
-#' header <- tibble(subgroup = c("", "", "Subgroup"),
-#'                  group1 = c("Improvement", "after ten days", "of placebo"),
-#'                  group2 = c("Improvement", "after ten days", "of treatment"),
-#'                  OR = c("", "Odds ratio", "[95% CI]"),
-#'                  summary = TRUE,
-#'                  p = c("", "", "p"))
-#' res <- bind_rows(header,
-#'                  res)
+#' res <- add_header(res,
+#'                  group1_lbl = c("Improvement", "after ten days", "of placebo"),
+#'                  group2_lbl = c("Improvement", "after ten days", "of treatment"))
 #'
 #' # Visualize using forestplot
 #' library(forestplot)
