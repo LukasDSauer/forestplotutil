@@ -121,6 +121,11 @@ subgroup_table_binomial <- function(data,
                            OR_interact = FALSE){
   # which level is the positive_outcome?
   outcome_positive_pos = which(levels(data[[outcome]]) == outcome_positive)
+  if(outcome_positive_pos != 2){
+    warning("The positive outcome is the first level of the factor, not
+             the second. This may lead to unintuitive odds ratios. We recommend
+             changing the order of the outcome levels.")
+  }
   # Variables names of subgroup variables
   subgroup_vars <- names(formulas)
   # Labels for subgroup variables
