@@ -36,7 +36,10 @@ subgroup variable names. This parameter is only necessary if
 \code{OR_interact = false}.}
 
 \item{group}{a string specifying the name of the treatment group variable in
-\code{data}. The group variable must be a factor.}
+\code{data}. The group variable must either be a factor with two levels or a
+numeric variable. The former describes the setting of a treatment group and
+a control, the latter describes the setting of a continuous exposure, e.g.
+biomarker suspected to influence the outcome.}
 
 \item{outcome}{a string specifying the name of the outcome variable in \code{data}.
 The outcome variable must be a factor.}
@@ -70,7 +73,8 @@ on the full study population.
 \examples{
 library(dplyr)
 
-# Data preparation
+# Example 1: Complete example for factor group variable
+## Data preparation
 data(knee, package="catdata")
 
 knee \%>\% mutate(Th = factor(Th),
@@ -80,7 +84,7 @@ knee \%>\% mutate(Th = factor(Th),
   knee
 formula_overall = "R4_improved ~ Th + R1"
 
-# Generate table
+## Generate table
 knee \%>\%
   subgroup_table_binomial(data = .,
                           formula_overall,
@@ -97,12 +101,12 @@ knee \%>\%
                           outcome_positive = "yes") ->
   res
 
-# Add a header
+## Add a header
 res <- add_header(res,
                  group1_lbl = c("Improvement", "after ten days", "of placebo"),
                  group2_lbl = c("Improvement", "after ten days", "of treatment"))
 
-# Visualize using forestplot
+## Visualize using forestplot
 library(forestplot)
 res \%>\%
   forestplot(labeltext = c(subgroup, group1, group2, OR, p),
@@ -133,4 +137,23 @@ Cairo::CairoPNG("knee.png", width = 500, height = 300, units="pt", dpi=310)
 plot
 dev.off()
 ## End(**Not run**)
+
+# Example 2: Short example for use with continous "group" variable (i.e.
+# exposure)
+formula_overall_mult = "R4_improved ~ R1"
+knee \%>\%
+  subgroup_table_binomial(data = .,
+                          formula_overall_mult,
+                          formulas = list(
+                            Sex = "R4_improved ~ R1 * Sex",
+                            Age = "R4_improved ~ R1 * Age"
+                          ),
+                          formulas_subgroups = list(
+                            Sex = formula_overall_mult,
+                            Age = formula_overall_mult
+                          ),
+                          group = "R1",
+                          outcome = "R4_improved",
+                          outcome_positive = "yes") ->
+  res
 }

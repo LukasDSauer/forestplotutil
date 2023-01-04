@@ -28,7 +28,10 @@
 #' subgroup variable names. This parameter is only necessary if
 #' `OR_interact = false`.
 #' @param group a string specifying the name of the treatment group variable in
-#' `data`. The group variable must be a factor.
+#' `data`. The group variable must either be a factor with two levels or a
+#' numeric variable. The former describes the setting of a treatment group and
+#' a control, the latter describes the setting of a continuous exposure
+#' suspected to influence the outcome, e.g. a biomarker.
 #' @param outcome a string specifying the name of the outcome variable in `data`.
 #' The outcome variable must be a factor.
 #' @param outcome_positive a string specifying the name favourable outcome level.
@@ -43,7 +46,8 @@
 #' @examples
 #' library(dplyr)
 #'
-#' # Data preparation
+#' # Example 1: Complete example for factor group variable
+#' ## Data preparation
 #' data(knee, package="catdata")
 #'
 #' knee %>% mutate(Th = factor(Th),
@@ -53,7 +57,7 @@
 #'   knee
 #' formula_overall = "R4_improved ~ Th + R1"
 #'
-#' # Generate table
+#' ## Generate table
 #' knee %>%
 #'   subgroup_table_binomial(data = .,
 #'                           formula_overall,
@@ -70,12 +74,12 @@
 #'                           outcome_positive = "yes") ->
 #'   res
 #'
-#' # Add a header
+#' ## Add a header
 #' res <- add_header(res,
 #'                  group1_lbl = c("Improvement", "after ten days", "of placebo"),
 #'                  group2_lbl = c("Improvement", "after ten days", "of treatment"))
 #'
-#' # Visualize using forestplot
+#' ## Visualize using forestplot
 #' library(forestplot)
 #' res %>%
 #'   forestplot(labeltext = c(subgroup, group1, group2, OR, p),
@@ -106,6 +110,25 @@
 #' plot
 #' dev.off()
 #' ## End(**Not run**)
+#'
+#' # Example 2: Short example for use with continous "group" variable (i.e.
+#' # exposure)
+#' formula_overall_mult = "R4_improved ~ R1"
+#' knee %>%
+#'   subgroup_table_binomial(data = .,
+#'                           formula_overall_mult,
+#'                           formulas = list(
+#'                             Sex = "R4_improved ~ R1 * Sex",
+#'                             Age = "R4_improved ~ R1 * Age"
+#'                           ),
+#'                           formulas_subgroups = list(
+#'                             Sex = formula_overall_mult,
+#'                             Age = formula_overall_mult
+#'                           ),
+#'                           group = "R1",
+#'                           outcome = "R4_improved",
+#'                           outcome_positive = "yes") ->
+#'   res
 subgroup_table_binomial <- function(data,
                            formula_overall = NULL,
                            formulas,
@@ -117,9 +140,9 @@ subgroup_table_binomial <- function(data,
   # which level is the positive_outcome?
   outcome_positive_pos = which(levels(data[[outcome]]) == outcome_positive)
   if(outcome_positive_pos != 2){
-    warning("The positive outcome is the first level of the factor, not
-             the second. This may lead to unintuitive odds ratios. We recommend
-             changing the order of the outcome levels.")
+    warning(paste0("The positive outcome is the first level of the factor,",
+                   " not the second. This may lead to unintuitive odds ratios.",
+                   " We recommend changing the order of the outcome levels."))
   }
   # Variables names of subgroup variables
   subgroup_vars <- names(formulas)
@@ -134,8 +157,10 @@ subgroup_table_binomial <- function(data,
     }
   }
   # Treatment group levels
-  if(!is.factor(data[[group]])){
-    stop(paste("The group variable", group, "must be a factor variable."))
+  group_is_factor <- is.factor(data[[group]])
+  if(!(group_is_factor | is.numeric(data[[group]]))){
+    stop(paste("The group variable", group, "must be a factor variable or
+                a numeric variable."))
   }
   group_levels = levels(data[[group]])
   # Name of the second group
@@ -151,15 +176,19 @@ subgroup_table_binomial <- function(data,
                       data=data)
     # Type III ANOVA is not necessary as no interaction terms are given
     p_str = rd_p(summary(mod_overall)$coefficients[group2_name,"Pr(>|z|)"])
-    # Frequency table of positive outcome
-    group_t = table(data[[group]])
-    outcome_per_group_t =
-      table(data[[group]], data[[outcome]])[, outcome_positive_pos]
-    outcome_per_group_freq_t =
-      matrix(paste0(outcome_per_group_t, "/",
-                    group_t, " (",
-                    rd_pct(outcome_per_group_t/group_t), "%)"),
-             dim(group_t))
+    # Frequency table of positive outcome -- only for factor variables
+    if(group_is_factor){
+      group_t = table(data[[group]])
+      outcome_per_group_t =
+        table(data[[group]], data[[outcome]])[, outcome_positive_pos]
+      outcome_per_group_freq_t =
+        matrix(paste0(outcome_per_group_t, "/",
+                      group_t, " (",
+                      rd_pct(outcome_per_group_t/group_t), "%)"),
+               dim(group_t))
+    } else{
+      outcome_per_group_freq_t = matrix(character(2), c(2,1))
+    }
     # Confidence interval
     ci = exp(confint.default(mod_overall))
     # Odds ratio of treatment group in the model calculated on the subgroup
@@ -184,11 +213,16 @@ subgroup_table_binomial <- function(data,
   # Adding results for single subgroups
   for(subgroup in subgroup_vars){
     if(!is.factor(data[[subgroup]])){
-      stop(paste("The subgroup variable", subgroup, "must be a factor variable."))
+      stop(paste("The subgroup variable", subgroup,
+                 "must be a factor variable."))
     }
     # Contrasts for mod_interact
-    contrasts = list(subgroup=contr.sum, group=contr.sum)
-    names(contrasts) = c(subgroup, group)
+    if(group_is_factor){
+      contrasts = list(subgroup=contr.sum, group=contr.sum)
+      names(contrasts) = c(subgroup, group)
+    } else {
+      contrasts = NULL
+    }
     # Logistic regression model with interaction term
     mod_interact = glm(formula = formulas[subgroup][[1]],
                        family = binomial,
@@ -206,19 +240,33 @@ subgroup_table_binomial <- function(data,
       interact_Anova = paste0(group, ":", subgroup)
       p = aov_mod[interact_Anova,"Pr(>Chisq)"]
     }
+    # If the p-value is still missing, this is probably due to the subgroup
+    # variable missing in the formula.
+    if(is.na(p)){
+      stop(paste0("Unable to calculate a p-value for subgroup ",
+                  subgroup,
+                  ". Perhaps, this subgroup does not appear in the",
+                  " corresponding formula ",
+                  formulas[subgroup][[1]], "."))
+    }
     p_str = rd_p(p)
     # Frequency table of positive outcome
-    subgroup_t = table(data[[subgroup]], data[[group]])
-    if(0 %in% rowSums(subgroup_t)){
-      stop(paste("The factor variable", subgroup, "contains unused levels. Consider using droplevels()."))
+    if(group_is_factor){
+      subgroup_t = table(data[[subgroup]], data[[group]])
+      if(0 %in% rowSums(subgroup_t)){
+        stop(paste("The factor variable", subgroup, "contains unused levels. Consider using droplevels()."))
+      }
+      outcome_per_subgroup_t =
+        table(data[[subgroup]], data[[group]], data[[outcome]])[, , outcome_positive_pos]
+      outcome_per_subgroup_freq_t =
+        matrix(paste0(outcome_per_subgroup_t, "/",
+                      subgroup_t, " (",
+                      rd_pct(outcome_per_subgroup_t/subgroup_t), "%)"),
+               dim(subgroup_t))
+    } else {
+      outcome_per_subgroup_freq_t = matrix(character(2*length(subgroup_levels)),
+                                   c(length(subgroup_levels), 2))
     }
-    outcome_per_subgroup_t =
-      table(data[[subgroup]], data[[group]], data[[outcome]])[, , outcome_positive_pos]
-    outcome_per_subgroup_freq_t =
-      matrix(paste0(outcome_per_subgroup_t, "/",
-                    subgroup_t, " (",
-                    rd_pct(outcome_per_subgroup_t/subgroup_t), "%)"),
-             dim(subgroup_t))
     # Confidence intervals and ORs are either calculated as interaction terms
     # of the ANOVA model or as the treatment effects of separate models calculated
     # on the specific subgroups
@@ -229,7 +277,10 @@ subgroup_table_binomial <- function(data,
 
     if(OR_interact){
       # Name of interaction term
-      interact_mod = paste0(subgroup, 1:(length(subgroup_levels)-1), ":", group, "1")
+      interact_mod = paste0(subgroup, 1:(length(subgroup_levels)-1), ":", group)
+      if(group_is_factor){
+        paste0(interact_mod, "1")
+      }
       # Confidence interval(s)
       ci = exp(confint.default(mod_interact))
       ci_lower = unname(c(NA, ci[interact_mod,1]))
@@ -269,6 +320,9 @@ subgroup_table_binomial <- function(data,
     )
     res <- bind_rows(res,
                      res_subgroup)
+  }
+  if(!group_is_factor){
+    res <- res[-which(names(res) %in% c("group1", "group2"))]
   }
   return(res)
 }
