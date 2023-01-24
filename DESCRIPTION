@@ -1,7 +1,7 @@
 Package: forestplotutil
 Type: Package
 Title: Utility package for easier generation of forest plots with forestplot
-Version: 0.1.0
+Version: 0.1.1
 Author: Who wrote it
 Maintainer: Lukas D. Sauer <sauer@imbi.uni-heidelberg.de>
 Description: The aim of forestplotutil is to provide functions that simplify performing
@@ -18,7 +18,5 @@ Suggests:
     dplyr (>= 1.0.9),
     catdata (>= 1.2.2),
     forestplot (>= 2.0.1)
-VignetteBuilder: 
-    knitr
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.3

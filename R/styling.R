@@ -7,10 +7,13 @@
 #'  Each row of the vector will be translated into a separate line in the
 #'  resulting data set.
 #' @param group2_lbl a character vector containing a label for treatment group 2.
+#' @param or_lbl a character vector containing a label for the odds ratio.
+#' @param p_lbl a character vector containing a label for the p value.
 #' @return A tibble ready for input into `forestplot::forestplot()`.
 #' @seealso [forestplotutil::subgroup_table_binomial] generates the table for which this header is intended.
 #' @export
 #' @examples
+#' library(dplyr)
 #' data(knee, package="catdata")
 #'
 #' knee %>% mutate(Th = factor(Th),
@@ -33,7 +36,9 @@
 #'   add_header(., group1_lbl = c("Improvement in", "placebo group"),
 #'              group2_lbl = c("Improvement in", "treatment group")) ->
 #'   res
-add_header <- function(data, group1_lbl = c("", ""), group2_lbl = c("", "")){
+add_header <- function(data,
+                       group1_lbl = c("", ""), group2_lbl = c("", ""),
+                       or_lbl = c("Odds ratio", "[95% CI]"), p_lbl = "p"){
   group_in_data = "group1" %in% names(data)
   if(group_in_data){
     if(is.null(group1_lbl)){
@@ -46,13 +51,14 @@ add_header <- function(data, group1_lbl = c("", ""), group2_lbl = c("", "")){
     group1_lbl = c("", "")
     group2_lbl = group1_lbl
   }
-  max_length = max(length(group1_lbl), length(group2_lbl))
+  max_length = max(length(group1_lbl), length(group2_lbl),
+                   length(or_lbl), length(p_lbl))
   header <- tibble(subgroup = c(rep("", max_length-1), "Subgroup"),
                    group1 = c(rep("", max_length-length(group1_lbl)), group1_lbl),
                    group2 = c(rep("", max_length-length(group2_lbl)), group2_lbl),
-                   OR = c(rep("", max_length-2), "Odds ratio", "[95% CI]"),
+                   OR = c(rep("", max_length-length(or_lbl)), or_lbl),
                    summary = TRUE,
-                   p = c(rep("", max_length-1), "p"))
+                   p = c(rep("", max_length-length(p_lbl)), p_lbl))
   if(!group_in_data){
     header <- header[, -which(names(header) %in% c("group1", "group2"))]
   }

@@ -38,8 +38,8 @@ subgroup variable names. This parameter is only necessary if
 \item{group}{a string specifying the name of the treatment group variable in
 \code{data}. The group variable must either be a factor with two levels or a
 numeric variable. The former describes the setting of a treatment group and
-a control, the latter describes the setting of a continuous exposure, e.g.
-biomarker suspected to influence the outcome.}
+a control, the latter describes the setting of a continuous exposure
+suspected to influence the outcome, e.g. a biomarker.}
 
 \item{outcome}{a string specifying the name of the outcome variable in \code{data}.
 The outcome variable must be a factor.}
